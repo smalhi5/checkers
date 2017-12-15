@@ -1,4 +1,5 @@
 var state = {
+  action: 'idle',
   over: false,
   turn: 'b',
   board: [
@@ -16,6 +17,8 @@ var state = {
   captures: {w: 0, b: 0}
 }
 
+var ctx;
+
 function getLegalMoves(piece, x, y) {
   var moves = [];
   switch(piece) {
@@ -24,13 +27,13 @@ function getLegalMoves(piece, x, y) {
       checkSlide(moves, x+1, y-1);
       checkJump(moves, {captures:[],landings:[], x:x, y:y}, piece, x, y);
       break;
-    case 'w': 
+    case 'w':  
       checkSlide(moves, x-1, y+1);
       checkSlide(moves, x+1, y+1);
       checkJump(moves, {captures:[],landings:[], x:x, y:y}, piece, x, y);
       break;
-    case 'bk':
-    case 'wk':
+    case 'bk': 
+    case 'wk': 
       checkSlide(moves, x-1, y+1);
       checkSlide(moves, x+1, y+1);
       checkSlide(moves, x-1, y-1);
@@ -59,7 +62,7 @@ function copyJumps(jumps) {
 
 function checkJump(moves, jumps, piece, x, y) {
   switch(piece) {
-    case 'b':
+    case 'b': 
       checkLanding(moves, copyJumps(jumps), piece, x-1, y-1, x-2, y-2);
       checkLanding(moves, copyJumps(jumps), piece, x+1, y-1, x+2, y-2);
       break;
@@ -67,8 +70,8 @@ function checkJump(moves, jumps, piece, x, y) {
       checkLanding(moves, copyJumps(jumps), piece, x-1, y+1, x-2, y+2);
       checkLanding(moves, copyJumps(jumps), piece, x+1, y+1, x+2, y+2);
       break;
-    case 'bk':
-    case 'wk':
+    case 'bk': 
+    case 'wk': 
       checkLanding(moves, copyJumps(jumps), piece, x-1, y+1, x-2, y+2);
       checkLanding(moves, copyJumps(jumps), piece, x+1, y+1, x+2, y+2);
       checkLanding(moves, copyJumps(jumps), piece, x-1, y-1, x-2, y-2);
@@ -126,3 +129,146 @@ function nextTurn() {
   if(state.turn === 'b') state.turn = 'w';
   else state.turn = 'b';
 }
+
+function renderChecker(piece, x, y) {
+  ctx.beginPath();
+  if(state.board[y][x].charAt(0) === 'w') {
+    ctx.fillStyle = '#fff';
+  } else {
+    ctx.fillStyle = '#000';
+  }
+  ctx.arc(x*100+50, y*100+50, 40, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function renderSquare(x,y) {
+  if((x + y) % 2 == 1) {
+    ctx.fillStyle = '#888';
+    ctx.fillRect(x*100, y*100, 100, 100);
+    if(state.board[y][x]) {
+      renderChecker(state.board[y][x], x, y);
+    }
+  }
+}
+
+function renderBoard() {
+  if(!ctx) return;
+  for(var y = 0; y < 10; y++) {
+    for(var x = 0; x < 10; x++) {
+      renderSquare(x, y);
+    }
+  }
+}
+
+function boardPosition(x, y) {
+  var boardX = Math.floor(x / 50);
+  var boardY = Math.floor(y / 50);
+  return {x: boardX, y: boardY}
+}
+
+function handleMouseDown(event) {
+  var position = boardPosition(event.clientX, event.clientY);
+  var x = position.x;
+  var y = position.y;
+  if(x < 0 || y < 0 || x > 9 || y > 9) return;
+  if(state.board[y][x] && state.board[y][x].charAt(0) === state.turn) {
+    state.movingPiece = {
+      piece: state.board[y][x],
+      startPosition: {x: x, y: y},
+      currentPosition: boardPosition(event.clientX,event.clientY)
+    }
+    state.action = "dragging";
+    state.board[y][x] = null;
+    renderBoard();
+  }
+}
+
+function handleMouseUp(event) {
+  if(state.action !== 'dragging') return;
+  var position = boardPosition(event.clientX, event.clientY);
+  var x = position.x;
+  var y = position.y;
+  if(x < 0 || y < 0 || x > 9 || y > 9) {
+    var sx = state.movingPiece.startPosition.x;
+    var sy = state.movingPiece.startPosition.y;
+    state.board[sy][sx] = state.movingPiece.piece;
+    state.movingPiece = null;
+    state.action = "idle";
+    renderBoard();
+    return;
+  };
+  if(true) {
+    var lx = state.movingPiece.currentPosition.x;
+    var ly = state.movingPiece.currentPosition.y;
+    state.board[ly][lx] = state.movingPiece.piece;
+    state.movingPiece = null;
+    state.action = "idle";
+    renderBoard();
+    return;
+  }
+}
+
+function renderDragging() {
+  renderBoard();
+
+  ctx.fillStyle = '#555';
+  ctx.beginPath();
+  ctx.arc(
+    state.movingPiece.startPosition.x*100+50,
+    state.movingPiece.startPosition.y*100+50,
+    40, 0, Math.PI * 2
+  );
+  ctx.fill();
+
+  ctx.strokeStyle = 'yellow';
+  ctx.beginPath();
+  ctx.arc(
+    state.movingPiece.currentPosition.x*100+50,
+    state.movingPiece.currentPosition.y*100+50,
+    40, 0, Math.PI * 2
+  );
+  ctx.stroke();
+
+}
+
+function handleMouseMove(event) {
+  renderBoard();
+  switch(state.action) {
+    case 'idle':
+      hoverOverChecker(event);
+      break;
+    case 'dragging':
+      state.movingPiece.currentPosition =
+        boardPosition(event.clientX, event.clientY);
+      renderDragging();
+      break;
+  }
+}
+
+function hoverOverChecker(event) {
+  if(!ctx) return;
+  var x = Math.floor(event.clientX / 50);
+  var y = Math.floor(event.clientY / 50);
+  if(x < 0 || y < 0 || x > 9 || y > 9) return;
+  if(state.board[y][x] && state.board[y][x].charAt(0) === state.turn) {
+    ctx.strokeWidth = 15;
+    ctx.strokeStyle = "yellow";
+    ctx.beginPath();
+    ctx.arc(x*100+50, y*100+50, 40, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function setup() {
+  var canvas = document.createElement('canvas');
+  canvas.width = 1000;
+  canvas.height = 1000;
+  canvas.onmousedown = handleMouseDown;
+  canvas.onmouseup = handleMouseUp;
+  canvas.onmousemove = handleMouseMove;
+  document.body.appendChild(canvas);
+  ctx = canvas.getContext('2d');
+  renderBoard();
+}
+
+setup();
