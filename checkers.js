@@ -1,3 +1,10 @@
+const readline = require('readline');
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
 var state = {
   over: false,
   turn: 'b',
@@ -24,7 +31,7 @@ function getLegalMoves(piece, x, y) {
       checkSlide(moves, x+1, y-1);
       checkJump(moves, {captures:[],landings:[], x:x, y:y}, piece, x, y);
       break;
-    case 'w': 
+    case 'w':
       checkSlide(moves, x-1, y+1);
       checkSlide(moves, x+1, y+1);
       checkJump(moves, {captures:[],landings:[], x:x, y:y}, piece, x, y);
@@ -59,16 +66,16 @@ function copyJumps(jumps) {
 
 function checkJump(moves, jumps, piece, x, y) {
   switch(piece) {
-    case 'b':
+    case 'b': 
       checkLanding(moves, copyJumps(jumps), piece, x-1, y-1, x-2, y-2);
       checkLanding(moves, copyJumps(jumps), piece, x+1, y-1, x+2, y-2);
       break;
-    case 'w': 
+    case 'w':  
       checkLanding(moves, copyJumps(jumps), piece, x-1, y+1, x-2, y+2);
       checkLanding(moves, copyJumps(jumps), piece, x+1, y+1, x+2, y+2);
       break;
-    case 'bk':
-    case 'wk':
+    case 'bk': 
+    case 'wk': 
       checkLanding(moves, copyJumps(jumps), piece, x-1, y+1, x-2, y+2);
       checkLanding(moves, copyJumps(jumps), piece, x+1, y+1, x+2, y+2);
       checkLanding(moves, copyJumps(jumps), piece, x-1, y-1, x-2, y-2);
@@ -126,3 +133,88 @@ function nextTurn() {
   if(state.turn === 'b') state.turn = 'w';
   else state.turn = 'b';
 }
+
+function checkForVictory() {
+  if(state.captures.w == 20) {
+    state.over = true;
+    return 'black wins';
+  }
+  if(state.captures.b == 20) {
+    state.over = true;
+    return 'white wins';
+  }
+  return null;
+}
+
+function nextTurn() {
+  if(state.turn === 'b') state.turn = 'w';
+  else state.turn = 'b';
+}
+
+function printBoard() {
+  console.log()
+  console.log("   a b c d e f g h i j");
+  state.board.forEach(function(row, index){
+    var ascii = row.map(function(square){
+      if(!square) return '_';
+      else return square;
+    }).join('|');
+    console.log(index, ascii);
+  });
+  console.log('\n');
+}
+
+function getJumpString(move) {
+  var jumps = move.landings.map(function(landing) {
+    return String.fromCharCode(97 + landing.x) + "," + landing.y;
+  }).join(' to ');
+  return "jump to " + jumps + " capturing " + move.captures.length + " piece" + ((move.captures.length > 1)?'s':'');
+}
+
+function processTurn() {
+  printBoard();
+  console.log(state.turn + "'s turn");
+  rl.question("Pick a piece to move, (letter, number): ", function(answer) {
+
+    var match = /([a-j]),?\s?([0-9])/.exec(answer);
+    if(match) {
+      var x = match[1].toLowerCase().charCodeAt(0) - 'a'.charCodeAt(0);
+      var y = parseInt(match[2]);
+      var piece = state.board[y][x];
+      var moves = getLegalMoves(piece, x, y);
+      if(moves.length === 0) {
+        console.log("\nNo legal moves for ", piece, "at", x, ",", y);
+        return processTurn();
+      }
+
+      console.log("\nAvailable moves for ", match[1] + "," + match[2]);
+      console.log("C. Cancel")
+      moves.forEach(function(move, index) {
+        if(move.type === 'slide') {
+          console.log(index + ". You can slide to " + String.fromCharCode(97 + move.x) + "," + move.y);
+        } else {
+          console.log(index + ". You can " + getJumpString(move));
+        }
+      })
+      rl.question("Pick your move from the list:", function(answer) {
+        if(answer.substring(0,1) === 'c') return processTurn();
+        var command = parseInt(answer);
+        if(isNaN(command) || command >= moves.length) return processTurn();
+        applyMove(x,y,moves[command]);
+        var result = checkForVictory();
+        if(result) {
+          console.log(result);
+          return;
+        }
+        nextTurn();
+        return processTurn();
+      });
+    }
+  });
+}
+
+function main() {
+  processTurn();
+}
+
+main();
