@@ -29,8 +29,8 @@ function getLegalMoves(piece, x, y) {
       checkSlide(moves, x+1, y+1);
       checkJump(moves, {captures:[],landings:[], x:x, y:y}, piece, x, y);
       break;
-    case 'bk':
-    case 'wk':
+    case 'bk': 
+    case 'wk': 
       checkSlide(moves, x-1, y+1);
       checkSlide(moves, x+1, y+1);
       checkSlide(moves, x-1, y-1);
@@ -59,7 +59,7 @@ function copyJumps(jumps) {
 
 function checkJump(moves, jumps, piece, x, y) {
   switch(piece) {
-    case 'b':
+    case 'b': 
       checkLanding(moves, copyJumps(jumps), piece, x-1, y-1, x-2, y-2);
       checkLanding(moves, copyJumps(jumps), piece, x+1, y-1, x+2, y-2);
       break;
@@ -67,8 +67,8 @@ function checkJump(moves, jumps, piece, x, y) {
       checkLanding(moves, copyJumps(jumps), piece, x-1, y+1, x-2, y+2);
       checkLanding(moves, copyJumps(jumps), piece, x+1, y+1, x+2, y+2);
       break;
-    case 'bk':
-    case 'wk':
+    case 'bk': 
+    case 'wk': 
       checkLanding(moves, copyJumps(jumps), piece, x-1, y+1, x-2, y+2);
       checkLanding(moves, copyJumps(jumps), piece, x+1, y+1, x+2, y+2);
       checkLanding(moves, copyJumps(jumps), piece, x-1, y-1, x-2, y-2);
@@ -125,4 +125,51 @@ function checkForVictory() {
 function nextTurn() {
   if(state.turn === 'b') state.turn = 'w';
   else state.turn = 'b';
+}
+
+function clearHighlights() {
+  var highlighted = document.querySelectorAll('.highlight');
+  highlighted.forEach(function(square){
+    square.classList.remove('highlight');
+  });
+}
+
+function handleCheckerClick(event) {
+  event.preventDefault();
+  var parentId = event.target.parentElement.id;
+  var x = parseInt(parentId.charAt(7));
+  var y = parseInt(parentId.charAt(9));
+  var piece = state.board[y][x];
+  clearHighlights();
+  if(piece.charAt(0) !== state.turn) return;
+  var moves = getLegalMoves(state.board[y][x], x, y);
+  event.target.classList.add('highlight');
+  moves.forEach(function(move){
+    if(move.type === 'slide') {
+      var square = document.getElementById('square-' + move.x + '-' + move.y);
+      square.classList.add('highlight');
+    }
+  })
+}
+
+function setup() {
+  var board = document.createElement('section');
+  board.id = 'game-board';
+  document.body.appendChild(board);
+  for(var y = 0; y < state.board.length; y++){
+    for(var x = 0; x < state.board[y].length; x++){
+      var square = document.createElement('div');
+      square.id = "square-" + x + "-" + y;
+      square.classList.add('square');
+      if((y+x) % 2 === 1) square.classList.add('black');
+      board.appendChild(square);
+      if(state.board[y][x]) {
+        var checker = document.createElement('div');
+        checker.classList.add('checker');
+        checker.classList.add('checker-' + state.board[y][x]);
+        checker.onclick = handleCheckerClick;
+        square.appendChild(checker);
+      }
+    }
+  }
 }

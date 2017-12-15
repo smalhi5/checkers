@@ -1,0 +1,44 @@
+#game-board {
+  border: 1px solid black;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 1020px;
+  height: 1020px;
+}
+
+.square {
+  border: 1px solid black;
+  width: 100px;
+  height: 100px;
+}
+
+.black {
+  background-color: darkgray;
+}
+
+.checker {
+  width: 90px;
+  height: 90px;
+  margin: 5px;
+  border-radius: 50%;
+  box-shadow: 8px 8px 8px gray;
+}
+
+.checker-w, .checker-wk {
+  background-color: ivory;
+}
+
+.checker-b, .checker-bk {
+  background-color: black;
+}
+
+.square.highlight {
+  background-color: yellow;
+}
+
+.checker.highlight {
+  border: 3px solid yellow;
+  width: 80px;
+  height: 80px;
+}
